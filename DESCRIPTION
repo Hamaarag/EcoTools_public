@@ -1,0 +1,65 @@
+Package: EcoTools
+Title: Validated Workflows for Ecological Regression and Joint-Species Models
+Version: 0.1.1
+Authors@R: c(
+    person(
+      given = "Orr",
+      family = "Comay",
+      email = "orr.comay@hamaarag.org",
+      role = c("aut", "cre", "cph"),
+      comment = c(ORCID = "0000-0002-5576-4425")
+    ),
+    person(
+      given = "Ilia",
+      family = "Maidanik",
+      email = "imaidanik@gmail.com",
+      role = c("ctb")
+    )
+  )
+Description: Provides reproducible workflows for fitting, validating, caching,
+    and diagnosing ecological generalized linear mixed models, generalized
+    additive models, and generalized linear latent variable models. Functions
+    support fixed-effect design-matrix checks, sparse-response screening,
+    convergence and uncertainty validation, simulation-based residual
+    diagnostics, cache invalidation based on analysis fingerprints, and
+    validated estimated marginal means. Residual diagnostics build on the
+    simulation-based framework of Hartig (2022)
+    <doi:10.1111/2041-210X.12849>, while mixed-model fitting may use the
+    framework described by Brooks et al. (2017)
+    <doi:10.32614/RJ-2017-066>.
+License: GPL (>= 3)
+URL: https://github.com/Hamaarag/EcoTools
+BugReports: https://github.com/Hamaarag/EcoTools/issues
+Encoding: UTF-8
+Depends:
+    R (>= 4.1.0)
+Imports: 
+    data.table,
+    DHARMa,
+    digest,
+    emmeans,
+    forcats,
+    ggplot2,
+    gllvm,
+    glmmTMB,
+    here,
+    insight,
+    mgcv,
+    mgcViz,
+    parallel,
+    reformulas,
+    rlang,
+    statmod,
+    stringr,
+    TMB,
+    tweedie
+Config/roxygen2/version: 8.1.0
+Suggests:
+    callr, 
+    knitr,
+    pkgload,
+    rmarkdown,
+    testthat (>= 3.0.0),
+    withr
+VignetteBuilder: knitr
+Config/testthat/edition: 3

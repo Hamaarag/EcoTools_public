@@ -1,0 +1,234 @@
+---
+title: "Validated Ecological Model Workflows with EcoTools"
+author: "Orr Comay"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    fig_width: 7
+    fig_height: 5
+vignette: >
+  %\VignetteIndexEntry{Validated Ecological Model Workflows with EcoTools}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, eval=TRUE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.align = "center"
+)
+```
+
+# Overview
+EcoTools provides validation-oriented workflows for ecological regression and joint-species models. It complements established modeling engines rather than replacing them.
+
+A typical EcoTools workflow consists of:
+
+1. validating the fixed-effect design matrix;
+2. screening sparse count or binary responses;
+3. fitting a model with a supported engine;
+4. evaluating convergence, Hessian behavior, and coefficient magnitude;
+5. generating simulation-based residual diagnostics;
+6. recording an explicit model-validity status;
+7. validating the model before downstream inference.
+
+# Simulated ecological count data
+
+The example below represents repeated abundance observations from multiple sites.
+```{r example-data, eval=FALSE}
+set.seed(2026)
+
+n_sites <- 24L
+n_visits <- 3L
+n_observations <- n_sites * n_visits
+
+example_data <- data.frame(
+  site = factor(
+    rep(
+      seq_len(n_sites),
+      each = n_visits
+    )
+  ),
+  habitat = factor(
+    rep(
+      c("grassland", "woodland"),
+      length.out = n_observations
+    )
+  ),
+  temperature = stats::rnorm(
+    n_observations,
+    mean = 18,
+    sd = 3
+  )
+)
+
+site_effect <- stats::rnorm(
+  n_sites,
+  mean = 0,
+  sd = 0.35
+)
+
+linear_predictor <- with(
+  example_data,
+  0.5 +
+    0.4 * (habitat == "woodland") +
+    0.06 * (temperature - 18) +
+    site_effect[site]
+)
+
+example_data$abundance <- stats::rpois(
+  n_observations,
+  lambda = exp(linear_predictor)
+)
+
+head(example_data)
+```
+
+# Validate the fixed-effect design
+Unused factor levels, non-finite values, redundant predictors, and rank deficiency can make coefficients non-estimable.
+
+```{r check-model-matrix, eval=FALSE}
+library(EcoTools)
+
+design_result <- check_model_matrix(
+  formula = abundance ~ habitat + temperature,
+  data = example_data,
+  action = "error"
+)
+
+design_result$pass
+design_result$rank
+design_result$n_columns
+```
+
+Using `action = "error"` is generally preferable for reproducible research because data-cleaning and reference-level decisions remain explicit in the analysis script.
+
+# Fit and validate a count model
+The following example is evaluated only when the optional modeling and diagnostic packages are available.
+
+```{r fit-model, eval=FALSE}
+model_bundle <- fit_and_simulate(
+  model_name = "vignette_poisson_glmm",
+  package = "glmmTMB",
+  model_formula =
+    abundance ~ habitat + temperature + (1 | site),
+  family = stats::poisson(),
+  data = example_data,
+  output_dir = file.path(
+    tempdir(),
+    "ecotools-vignette"
+  ),
+  force_refit = TRUE,
+  num_cores = 1L,
+  sparse_screen = TRUE,
+  design_check = TRUE,
+  design_action = "error",
+  dharma_n_sim = 100L,
+  dharma_seed = 2026L
+)
+
+model_bundle$model_status
+model_bundle$valid_for_inference
+model_bundle$warnings
+```
+
+The returned model bundle stores the fitted model, model-validation status, evaluated analysis data, residual diagnostics, cache fingerprint, warnings, and package-session information.
+
+# Sparse-response screening
+
+```{r sparse-result, eval=FALSE}
+model_bundle$sparse_screen$pass
+model_bundle$sparse_screen$details
+```
+
+Sparse-data thresholds are screening rules rather than universal statistical guarantees. They should be interpreted in relation to the sampling design, response support, estimated effect sizes, and intended inference.
+
+# Residual diagnostics
+```{r diagnostics, eval=FALSE}
+diagnostic_result <- DHARMa_diag(
+  res_object = model_bundle,
+  data = example_data,
+  model_title = "Poisson GLMM example",
+  print_plots = FALSE,
+  export_plots = FALSE
+)
+
+diagnostic_result$dispersion_ratio
+diagnostic_result$dispersion_p_value
+diagnostic_result$zero_inflation_ratio
+diagnostic_result$zero_inflation_p_value
+```
+
+Simulation-based residual tests have Monte Carlo variability. A single simulation-based p-value should not be interpreted as a deterministic model-quality label.
+
+# Repeated diagnostic stability
+The full stability assessment can be computationally intensive. This vignette uses a small demonstration configuration.
+
+```{r stability, eval=FALSE}
+stability_result <- DHARMa_stability_check(
+  model_bundle = model_bundle,
+  predictors = example_data[
+    c(
+      "habitat",
+      "temperature"
+    )
+  ],
+  n_runs = 3L,
+  n_sim = 100L,
+  alpha = 0.05,
+  borderline = 0.10,
+  seed = 2026L,
+  verbose = FALSE
+)
+
+stability_result$summary
+```
+
+A substantive ecological analysis should use enough repeated simulations to characterize Monte Carlo variability and should report the simulation settings.
+
+# Validate before inference
+
+```{r validation, eval=FALSE}
+if (identical(model_bundle$model_status, "valid")) {
+  assert_valid_model(
+    model_bundle,
+    purpose = "inference",
+    allow_sparse = FALSE
+  )
+}
+```
+
+A failed validation gate does not establish that an ecological hypothesis is false. It indicates that the fitted model has not met the configured requirements for formal inference.
+
+# Tweedie models near the Gamma boundary
+For a Tweedie response, the variance is proportional to $\mu^p$. Values between 1 and 2 describe the compound Poisson-Gamma family, whereas $p = 2$ is the Gamma boundary.
+
+Simulation can become extremely slow when a fitted Tweedie power is very close to 2. EcoTools therefore checks the fitted power before starting DHARMa simulation. By default, simulation is skipped when:
+
+p >= 1.99.
+When this guard is triggered:
+
+DHARMa residual simulation is not started;
+repeated DHARMa stability assessment is not started;
+the reason and fitted power are recorded;
+the model is not marked valid for inference by EcoTools.
+```{r inspect-Tweedie-guard, eval=FALSE}
+model_bundle$tweedie_simulation_guard$max_power
+model_bundle$tweedie_simulation_guard$blocked
+model_bundle$tweedie_simulation_guard$message
+model_bundle$dharma_status
+```
+
+The guard is computational and diagnostic. It does not by itself prove that all fitted coefficients are numerically incorrect. Instead, it indicates that the required simulation-based validation cannot safely be completed under the configured EcoTools workflow.
+
+For a strictly positive response with no exact zeros, a Gamma model with a log link is often a natural candidate:
+```{r, eval=FALSE}
+gamma_model <- glmmTMB::glmmTMB(
+  response ~ habitat + temperature + (1 | site),
+  family = stats::Gamma(link = "log"),
+  data = analysis_data
+)
+```
+
+The alternative family should be selected explicitly and justified from the response support, ecological sampling process, mean-variance relationship, diagnostics, and inferential objective. EcoTools does not silently replace a Tweedie family with Gamma.

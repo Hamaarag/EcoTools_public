@@ -1,0 +1,280 @@
+# EcoTools ReadMe
+Orr Comay
+2026-08-20
+
+- [Setup / Installation Guide](#setup)
+- [Overview](#overview)
+- [Function list and abbreviated documentation](#function-list-and-documentation)
+  - [1. Core Modeling Wrappers](#1-core-modeling-wrappers)
+    - [`fit_and_simulate(model_name, package, model_formula, family, data, ...)`](#fit_and_simulatemodel_name-package-model_formula-family-data-)
+    - [`fit_gllvm_cached(y, X, formula, family, ...)`](#fit_gllvm_cachedy-x-formula-family-)
+    - [`assert_valid_model(model_object)`](#assert_valid_modelmodel_object)
+  - [2. Statistical Diagnostics](#2-statistical-diagnostics)
+    - [`plot_gllvm_diagnostics(model, model_name)`](#plot_gllvm_diagnosticsmodel-model_name)
+    - [`DHARMa_diag(res_object, data, model_title, ...)`](#dharma_diagres_object-data-model_title-)
+    - [`DHARMa_stability_check(model_bundle, n_runs, n_sim, ...)`](#dharma_stability_checkmodel_bundle-n_runs-n_sim-)
+    - [`build_coef_plot(data_table, reverse_heb, ...)`](#build_coef_plotdata_table-reverse_heb-)
+  - [3. Data Screening](#3-data-screening)
+    - [`screen_sparse_count_model(model, data, ...)`](#screen_sparse_count_modelmodel-data-)
+    - [`screen_sparse_gllvm(y, X, ...)`](#screen_sparse_gllvmy-x-)
+  - [4. General Utilities](#4-general-utilities)
+    - [`get_analysis_fingerprint(...)`:](#get_analysis_fingerprint)
+    - [`get_auto_cores(user_cores, max_cap)`:](#get_auto_coresuser_cores-max_cap)
+    - [`std_error(x, na.rm)`:](#std_errorx-narm)
+    - [`strReverse(x)`:](#strreversex)
+    - [`sanitize_filename_part(x)`:](#sanitize_filename_partx)
+    - [`response_has_zero(model)`:](#response_has_zeromodel)
+    - [`is_count_like_response(x)`:](#is_count_like_responsex)
+
+# Setup / Installation Guide
+
+## 📦 EcoTools: Installation Guide
+
+Welcome to the `EcoTools` package! Because this is a private analytical repository, installation requires a quick, one-time authentication step so R can securely access the code.
+
+Please follow the path that applies to your current access level below:
+
+### 🛣️ Path A: I am a member of the HaMaarag GitHub Organization
+If you are already part of the `Hamaarag` organization, you have built-in access to this repository. You simply need to let your local R session know who you are.
+
+#### Step 1: Generate a GitHub Personal Access Token (PAT)
+1. Open R or Positron.
+2. Run the following command to open the GitHub token generation page with the correct settings pre-selected:
+   ```r
+   usethis::create_github_token(
+     scopes = c("repo"), 
+     description = "EcoTools Org Access Token"
+   )
+
+3. Scroll to the bottom of the webpage and click the green **Generate token** button.
+4. **Copy the token immediately** (it will look like a long password starting with `ghp_`).
+
+#### Step 2: Save the Token in R
+
+1. In R, open your hidden environment variables file by running:
+```r
+usethis::edit_r_environ()
+```
+
+
+2. Paste the following on a new line, replacing the placeholder with your copied token:
+```env
+GITHUB_PAT="ghp_YourCopiedTokenHere"
+```
+
+
+3. **Important:** Make sure you press `Enter` so there is an empty line at the very bottom of the file. Save and close the file.
+4. Restart your R session.
+
+#### Step 3: Install the Package
+
+Run the following command to securely download and install `EcoTools`:
+
+```r
+renv::install("Hamaarag/EcoTools")
+```
+---
+
+### 🛣️ Path B: I am an External Collaborator (Not in HaMaarag)
+
+If you are outside the organization, you must be explicitly invited to view this specific repository before your R session is allowed to download it.
+
+#### Step 1: Accept the Repository Invitation
+
+1. Ask the project administrator to invite your GitHub username as an **Outside Collaborator** to the `Hamaarag/EcoTools` repository.
+2. Check your email (or your GitHub notifications) for the invitation.
+3. Click the link to **Accept the Invitation**.
+
+#### Step 2: Generate a GitHub Personal Access Token (PAT)
+
+1. Open R or Positron.
+2. Run the following command to open the GitHub token generation page:
+```r
+usethis::create_github_token(
+  scopes = c("repo"), 
+  description = "EcoTools External Access Token"
+)
+```
+
+3. Scroll to the bottom of the webpage and click the green **Generate token** button.
+4. **Copy the token immediately** (it will look like a long password starting with `ghp_`).
+
+#### Step 3: Save the Token in R
+
+1. In R, open your hidden environment variables file by running:
+```r
+usethis::edit_r_environ()
+```
+
+2. Paste the following on a new line, replacing the placeholder with your copied token:
+```env
+GITHUB_PAT="ghp_YourCopiedTokenHere"
+
+```
+
+3. **Important:** Make sure you press `Enter` so there is an empty line at the very bottom of the file. Save and close the file.
+4. Restart your R session.
+
+#### Step 4: Install the Package
+
+Run the following command to securely download and install `EcoTools`:
+
+```r
+renv::install("Hamaarag/EcoTools")
+
+```
+---
+
+## 🔄 Updating the Package
+
+Whenever the package developers release a new update or patch a bug, you can pull the latest version into your active project by simply running:
+
+```r
+renv::install("Hamaarag/EcoTools")
+
+```
+
+# Overview
+
+This package was generated to host the custom functions used for
+analyses for Israel’s State of Nature Report 2026. It includes wrapper
+functions for R packages for quantitative ecology, such as `gllvm`, as
+well as general statistical packages such as `glmmTMB` and `mgcv`. In
+addition, it contains helper functions called within the main wrapper
+functions, to control for the number of cores, plot diagnostics and
+ensure pipeline stability.
+
+# Function list and abbreviated documentation
+
+## 1. Core Modeling Wrappers
+
+These functions automate model fitting, convergence checking, and
+dependency management. They utilize cryptographic hashing
+(fingerprinting) to cache valid models and prevent redundant,
+computationally expensive refitting.
+
+### `fit_and_simulate(model_name, package, model_formula, family, data, ...)`
+
+**Description:** Fits GLMMs (via glmmTMB) or GAMs (via mgcv) and
+automatically simulates randomized quantile residuals using the DHARMa
+package.
+
+**Features:** Evaluates optimizer convergence, checks for non-positive
+definite Hessian matrices, screens for extreme coefficients (complete
+separation), and saves the bundle to an .rds cache. Includes special
+fallback engines for twlss GAMs.
+
+### `fit_gllvm_cached(y, X, formula, family, ...)`
+
+**Description:** A robust wrapper for Joint Species Distribution Models
+using gllvm.
+
+**Features:** Evaluates standard error validity, automatically generates
+ggplot2-based diagnostics if convergence is successful, and safely
+handles cache invalidation if data or model structures change.
+
+### `assert_valid_model(model_object)`
+
+**Description:** A gatekeeper function designed to be run before
+executing summaries, predictions, or post-hoc tests like emmeans.
+
+**Features:** Throws a fatal error if the user attempts to run inference
+on a model flagged as “invalid” (e.g., optimizer failure) or
+“suspicious”.
+
+## 2. Statistical Diagnostics
+
+Standardized visualization and robustness checks for complex models.
+
+### `plot_gllvm_diagnostics(model, model_name)`
+
+**Description:** Generates a comprehensive suite of diagnostic plots
+(Residuals vs Fitted, Normal Q-Q, Scale-Location, and Row/Col index
+plots) for GLLVMs.
+
+**Features:** Extracts Dunn-Smyth residuals manually to bypass fragile
+base R simulation envelopes, utilizing ggplot2 for stable rendering and
+plotting analytical confidence bounds where possible.
+
+### `DHARMa_diag(res_object, data, model_title, ...)`
+
+**Description:** Automates the extraction and plotting of DHARMa
+residuals against fixed predictors.
+
+**Features:** Includes automated non-parametric dispersion testing and
+zero-inflation testing, safely skipping zero-inflation checks if the
+response contains no observed zeros.
+
+### `DHARMa_stability_check(model_bundle, n_runs, n_sim, ...)`
+
+**Description:** Runs multiple DHARMa simulations iteratively to test
+the stability of diagnostic $p$-values.
+
+**Features:** Summarizes the proportion of significant and borderline
+diagnostic flags across runs, ensuring inference isn’t driven by a
+single lucky (or unlucky) random seed.
+
+### `build_coef_plot(data_table, reverse_heb, ...)`
+
+**Description:** Constructs publication-ready coefficient plots using
+ggplot2.
+
+**Features:** Supports color palettes, custom fonts, and optional Hebrew
+text string reversal.
+
+## 3. Data Screening
+
+Pragmatic utilities to warn users before fitting models to uninformative
+data.
+
+### `screen_sparse_count_model(model, data, ...)`
+
+**Description:** Screens GLMM/GAM data to detect count/binary sparsity.
+
+**Features:** Evaluates the ratio of non-zero observations to estimated
+parameters, warning the user if the data lacks sufficient events to
+support the model complexity.
+
+### `screen_sparse_gllvm(y, X, ...)`
+
+**Description:** Specifically screens multivariate abundance matrices
+prior to GLLVM fitting.
+
+**Features:** Flags response columns (species/guilds) that fall below
+minimum total events or non-zero row thresholds, warning the user of
+potential likelihood optimization failures.
+
+## 4. General Utilities
+
+### `get_analysis_fingerprint(...)`:
+
+Computes an MD5 hash of formulas, data, and arguments to manage strict
+cache validation.
+
+### `get_auto_cores(user_cores, max_cap)`:
+
+Detects physical CPU cores while leaving one free for the OS and
+enforcing an OpenMP stability cap.
+
+### `std_error(x, na.rm)`:
+
+Computes the standard error of the mean.
+
+### `strReverse(x)`:
+
+Reverses strings, critical for exporting Hebrew text to specific
+graphics devices or PDF engines.
+
+### `sanitize_filename_part(x)`:
+
+Strips special characters to generate safe strings for automated file
+exports.
+
+### `response_has_zero(model)`:
+
+Safely extracts the response vector to evaluate the presence of
+structural or sampling zeros.
+
+### `is_count_like_response(x)`:
+
+Validates if a numeric vector is strictly non-negative and integer-like.

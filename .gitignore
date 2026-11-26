@@ -1,0 +1,13 @@
+*.html
+*_files/
+.quarto/
+*.tar.gz
+*.pdf
+inst/doc
+/doc/
+/Meta/
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+.venv/
