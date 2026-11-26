@@ -1,6 +1,6 @@
 # EcoTools ReadMe
 Orr Comay
-2026-08-20
+2026-11-26
 
 - [Setup / Installation Guide](#setup)
 - [Overview](#overview)
@@ -30,99 +30,12 @@ Orr Comay
 
 ## 📦 EcoTools: Installation Guide
 
-Welcome to the `EcoTools` package! Because this is a private analytical repository, installation requires a quick, one-time authentication step so R can securely access the code.
-
-Please follow the path that applies to your current access level below:
-
-### 🛣️ Path A: I am a member of the HaMaarag GitHub Organization
-If you are already part of the `Hamaarag` organization, you have built-in access to this repository. You simply need to let your local R session know who you are.
-
-#### Step 1: Generate a GitHub Personal Access Token (PAT)
-1. Open R or Positron.
-2. Run the following command to open the GitHub token generation page with the correct settings pre-selected:
-   ```r
-   usethis::create_github_token(
-     scopes = c("repo"), 
-     description = "EcoTools Org Access Token"
-   )
-
-3. Scroll to the bottom of the webpage and click the green **Generate token** button.
-4. **Copy the token immediately** (it will look like a long password starting with `ghp_`).
-
-#### Step 2: Save the Token in R
-
-1. In R, open your hidden environment variables file by running:
-```r
-usethis::edit_r_environ()
-```
-
-
-2. Paste the following on a new line, replacing the placeholder with your copied token:
-```env
-GITHUB_PAT="ghp_YourCopiedTokenHere"
-```
-
-
-3. **Important:** Make sure you press `Enter` so there is an empty line at the very bottom of the file. Save and close the file.
-4. Restart your R session.
-
-#### Step 3: Install the Package
-
-Run the following command to securely download and install `EcoTools`:
+Welcome to the `EcoTools` package! Run the following command to securely download and install `EcoTools`:
 
 ```r
-renv::install("Hamaarag/EcoTools")
-```
----
-
-### 🛣️ Path B: I am an External Collaborator (Not in HaMaarag)
-
-If you are outside the organization, you must be explicitly invited to view this specific repository before your R session is allowed to download it.
-
-#### Step 1: Accept the Repository Invitation
-
-1. Ask the project administrator to invite your GitHub username as an **Outside Collaborator** to the `Hamaarag/EcoTools` repository.
-2. Check your email (or your GitHub notifications) for the invitation.
-3. Click the link to **Accept the Invitation**.
-
-#### Step 2: Generate a GitHub Personal Access Token (PAT)
-
-1. Open R or Positron.
-2. Run the following command to open the GitHub token generation page:
-```r
-usethis::create_github_token(
-  scopes = c("repo"), 
-  description = "EcoTools External Access Token"
-)
+renv::install("Hamaarag/EcoTools_public")
 ```
 
-3. Scroll to the bottom of the webpage and click the green **Generate token** button.
-4. **Copy the token immediately** (it will look like a long password starting with `ghp_`).
-
-#### Step 3: Save the Token in R
-
-1. In R, open your hidden environment variables file by running:
-```r
-usethis::edit_r_environ()
-```
-
-2. Paste the following on a new line, replacing the placeholder with your copied token:
-```env
-GITHUB_PAT="ghp_YourCopiedTokenHere"
-
-```
-
-3. **Important:** Make sure you press `Enter` so there is an empty line at the very bottom of the file. Save and close the file.
-4. Restart your R session.
-
-#### Step 4: Install the Package
-
-Run the following command to securely download and install `EcoTools`:
-
-```r
-renv::install("Hamaarag/EcoTools")
-
-```
 ---
 
 ## 🔄 Updating the Package
@@ -130,21 +43,17 @@ renv::install("Hamaarag/EcoTools")
 Whenever the package developers release a new update or patch a bug, you can pull the latest version into your active project by simply running:
 
 ```r
-renv::install("Hamaarag/EcoTools")
-
+renv::install("Hamaarag/EcoTools_public")
 ```
 
 # Overview
 
-This package was generated to host the custom functions used for
-analyses for Israel’s State of Nature Report 2026. It includes wrapper
-functions for R packages for quantitative ecology, such as `gllvm`, as
-well as general statistical packages such as `glmmTMB` and `mgcv`. In
-addition, it contains helper functions called within the main wrapper
-functions, to control for the number of cores, plot diagnostics and
-ensure pipeline stability.
+This package was generated to host the custom functions used for the quantative ecology pipeline, with an emphasis on streamlining the use of pre-existing modelling and diagnostic packages such as `glmmTMB` (for GLMMs), `mgcv` (for GAMMs), `gllvm` (for, well, GLLVMs) and `DHARMa` (model diagnostics for GLMMs and GAMMs). In addition, it contains helper functions called within the main wrapper
+functions, to control for the number of cores, plot diagnostics and ensure pipeline stability. Originally, `EcoTools` was developed for the analyses performed for Israel's State of Nature Report 2026, but it can be useful for other modelling pipelines that rely on modelling, since it facilitates caching and diagnostics.
 
 # Function list and abbreviated documentation
+
+All user-facing functions are documented. The full documentation can be accessed via `?foo`, as in other R packages. Below is a quick overview of the main functions.
 
 ## 1. Core Modeling Wrappers
 
