@@ -36,6 +36,14 @@ Welcome to the `EcoTools` package! Run the following command to securely downloa
 renv::install("Hamaarag/EcoTools_public")
 ```
 
+Once installed, you can load it via:
+```r
+library(EcoTools)
+```
+
+Note that the package name is `EcoTools`, **NOT** `EcoTools_public`, which is the name of this public repository (to differentiate it from the private development repository of `EcoTools`). If you have installed the development version of `EcoTools` from the private repository, installing `EcoTools` from this public repository will overwrite your previous installation, and vice versa. 
+
+Since the release of this public repository, we recommend installing only the public version of `EcoTools`, unless you volunteer to assist in beta-testing...
 ---
 
 ## 🔄 Updating the Package
